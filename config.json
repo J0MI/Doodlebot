@@ -1,11 +1,12 @@
 {
-	"identity": {
+	"networkDefaults": {
 		"nick": ["Doodlebot"],
 		"user": "doodlebot doodlebot doodlebot :Doodlebot",
 		"pass": {
 			"source": "file",
 			"filename": "pass.txt"
-		}
+		},
+		"commandChar": "!"
 	},
 	"networks": {
 		"Freenode": {
