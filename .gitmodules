@@ -1,0 +1,3 @@
+[submodule "node-ncurses"]
+	path = node-ncurses
+	url = git://github.com/mscdex/node-ncurses.git

@@ -1,0 +1,4 @@
+{
+	"name": "Doodlebot IRC",
+	"main": "irc.js"
+}
