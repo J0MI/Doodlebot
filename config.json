@@ -6,7 +6,9 @@
 			"source": "file",
 			"filename": "pass.txt"
 		},
-		"commandChar": "!"
+		"commandChar": "!",
+		"logFile": "~/logs/$NETWORK/$CHANNEL.log",
+		"logFormat": "irssi"
 	},
 	"networks": {
 		"Freenode": {

@@ -2,8 +2,13 @@ var net = require('net');
 var fs = require('fs');
 var path = require('path');
 var vm = require('vm');
+
 var utils = require('../utils.js');
 var replycodes = require('./replycodes.js');
+
+var loggers = {
+	'irssi': require('./loggers/irssi.js')
+};
 
 module.exports = function(config, name){
 	var self = this;
@@ -15,6 +20,10 @@ module.exports = function(config, name){
 		'type': 'tcp4',
 		'allowHalfOpen': true
 	});
+	
+	this.nick = null;
+	this.users = {};
+	this.channels = {};
 	
 	// Event handlers
 	this.onConnect = function(){
@@ -29,7 +38,8 @@ module.exports = function(config, name){
 			
 		self.sendLine('PASS '+pass);
 		self.sendLine('USER '+self.config.user);
-		self.sendLine('NICK '+(self.config.nick[0] || self.config.nick));
+		
+		self.nick(self.config.nick[0] || self.config.nick);
 	};
 	this.onDisconnect = function(wasError){
 		console.log('DISCONNECT ('+(wasError?'error':'normal')+')');
@@ -78,8 +88,80 @@ module.exports = function(config, name){
 			'RPL_ENDOFMOTD': function(){ // End of MOTD, safe to join channels
 				self.join(self.config.channels);
 			},
+			'RPL_NOTOPIC': function(args, topic){
+				args.shift();
+				
+				var channel = args.shift();
+				self.channels[channel].topic = '';
+			},
+			'RPL_TOPIC': function(args, topic){
+				args.shift();
+				
+				var channel = args.shift();
+				self.channels[channel].topic = topic;
+			},
+			'RPL_NAMREPLY': function(args, nicks){
+				args.shift();
+				args.shift();
+				
+				var channel = args.shift();
+				nicks = utils.map(nicks.split(' '), function(str){
+					return str.replace(/^[@+]/, '');
+				});
+				
+				self.channels[channel].nicks.concat(nicks);
+			},
+			'RPL_ENDOFNAMES': function(args){
+				args.shift();
+				
+				var channel = args.shift();
+				
+				if ( self.channels[channel].logger )
+					self.channels[channel].logger.names(self.channels[channel].nicks);
+			},
+			'JOIN': function(args){
+				var channel = args.shift();
+				
+				if ( !self.channels[channel] ){
+					var logFile = self.config.logFile;
+					if ( logFile )
+						logFile = logFile.replace('~', process.env['HOME']).replace('$NETWORK', self.name).replace('$CHANNEL', channel);
+					
+					var chan = self.channels[channel] = {
+						'name': channel,
+						'topic': null,
+						'nicks': [],
+						'logger': null,
+						'logStream': logFile ? fs.createWriteStream(logFile, {'flags':'a', 'encoding':'utf8'}) : null
+					};
+					if ( self.config.logFormat ){
+						chan.logger = new loggers[self.config.logFormat](utils.takeArray(function(line){
+							chan.logStream.write(line+"\n");
+						}), channel);
+						chan.logger.open();
+						process.on('SIGINT', function(){
+							chan.logger.close();
+						});
+					}
+				}
+				
+				if ( origin.nick == self.nick )
+					self.channels[channel].nicks = [];
+				
+				if ( self.channels[channel].logger )
+					self.channels[channel].logger.join(origin);
+			},
+			'PART': function(args, message){
+				var channel = args.shift();
+				
+				if ( self.channels[channel].logger )
+					self.channels[channel].logger.part(origin, message);
+			},
 			'PRIVMSG': function(args, msg){
 				var msgTarget = args.shift();
+				
+				if ( self.channels[msgTarget] && self.channels[msgTarget].logger )
+					self.channels[msgTarget].logger.privmsg(origin, msg);
 				
 				if ( msg[0] != self.config.commandChar )
 					return;
@@ -128,8 +210,17 @@ module.exports = function(config, name){
 		self.sock.write(line+"\r\n");
 	});
 	
+	this.nick = function(nick){
+		self.nick = nick;
+		self.sendLine('NICK '+nick);
+	};
+	
 	this.join = utils.takeArray(function(channel){
 		self.sendLine('JOIN '+channel);
+	});
+	
+	this.part = utils.takeArray(function(channel){
+		self.sendLine('PART '+channel);
 	});
 	
 	// Local initialization

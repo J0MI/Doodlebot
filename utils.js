@@ -16,6 +16,24 @@ exports.forEach = function(obj, callback){
 	return true;
 };
 
+exports.map = function(obj, callback){
+	var output;
+	
+	if ( obj instanceof Array ){
+		output = [];
+		for ( var i=0; i<obj.length; ++i )
+			output[i] = callback(obj[i], i);
+		return output;
+	}
+	
+	output = {};
+	for ( var key in obj ){
+		if ( obj.hasOwnProperty(key) )
+			output[key] = callback(obj[key], key);
+	}
+	return output;
+};
+
 exports.fillMissing = function(obj){
 	for ( var i=1; i<arguments.length; ++i ){
 		exports.forEach(arguments[i], function(val, key){
