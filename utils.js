@@ -59,3 +59,14 @@ exports.takeArray = function(fn, context){
 		return fn.apply(context || null, arguments);
 	};
 };
+
+exports.once = function(fn){
+	var called = false;
+	return function(){
+		if ( !called ){
+			called = true;
+			return fn.apply(this, arguments);
+		}
+		return undefined;
+	};
+};

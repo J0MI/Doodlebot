@@ -10,6 +10,10 @@ var loggers = {
 	'irssi': require('./loggers/irssi.js')
 };
 
+var sanitize = function(str){
+	return str.replace(/[\r\n]/g, '');
+};
+
 module.exports = function(config, name){
 	var self = this;
 	
@@ -43,6 +47,19 @@ module.exports = function(config, name){
 	};
 	this.onDisconnect = function(wasError){
 		console.log('DISCONNECT ('+(wasError?'error':'normal')+')');
+	};
+	
+	this.onExit = function(doneCallback){
+		var stillWorking = 0;
+		utils.forEach(self.channels, function(chan){
+			if ( chan && chan.logger && chan.logger.close ){
+				++stillWorking;
+				chan.logger.close(utils.once(function(){
+					if ( --stillWorking == 0 )
+						doneCallback();
+				}));
+			}
+		});
 	};
 	
 	this.dataBuffer = '';
@@ -85,7 +102,8 @@ module.exports = function(config, name){
 		
 		var command = parts.shift();
 		var callbacks = {
-			'RPL_ENDOFMOTD': function(){ // End of MOTD, safe to join channels
+			'RPL_ENDOFMOTD': function(args){ // End of MOTD, safe to join channels
+				self.nick = args[0];
 				self.join(self.config.channels);
 			},
 			'RPL_NOTOPIC': function(args, topic){
@@ -119,8 +137,10 @@ module.exports = function(config, name){
 				if ( self.channels[channel].logger )
 					self.channels[channel].logger.names(self.channels[channel].nicks);
 			},
-			'JOIN': function(args){
-				var channel = args.shift();
+			'JOIN': function(args, payload){
+				var channel = args.shift() || payload;
+				if ( !channel )
+					return;
 				
 				if ( !self.channels[channel] ){
 					var logFile = self.config.logFile;
@@ -135,13 +155,16 @@ module.exports = function(config, name){
 						'logStream': logFile ? fs.createWriteStream(logFile, {'flags':'a', 'encoding':'utf8'}) : null
 					};
 					if ( self.config.logFormat ){
-						chan.logger = new loggers[self.config.logFormat](utils.takeArray(function(line){
-							chan.logStream.write(line+"\n");
+						chan.logger = new loggers[self.config.logFormat](utils.takeArray(function(line, doneCallback){
+							var drained = chan.logStream.write(line+"\n");
+							if ( doneCallback ){
+								if ( drained )
+									doneCallback();
+								else
+									chan.logStream.once('drain', doneCallback);
+							}
 						}), channel);
 						chan.logger.open();
-						process.on('SIGINT', function(){
-							chan.logger.close();
-						});
 					}
 				}
 				
@@ -168,7 +191,7 @@ module.exports = function(config, name){
 				
 				var parts = msg.substr(1).split(/\s+/);
 				var module = parts.shift();
-				var modulePath = path.resolve('modules/'+module.replace(/\.\.|[\r\n]/g, '')+'.js');
+				var modulePath = path.resolve('modules/'+module.replace(/[\.\r\n]/g, '')+'.js');
 				
 				if ( !path.existsSync(modulePath) ){
 					self.sendLine('PRIVMSG '+msgTarget+' :Command not found: '+module);
@@ -176,16 +199,70 @@ module.exports = function(config, name){
 				}
 				
 				try{
-					vm.runInNewContext(fs.readFileSync(modulePath, 'utf8'), {
-						'network': {
-							'name': self.name
-						},
-						'origin': origin,
-						'reply': utils.takeArray(function(msg){
-							var target = msgTarget==self.nick ? origin.nick : msgTarget;
-							self.sendLine('PRIVMSG '+target+' :'+msg);
-						})
-					}, modulePath);
+					fs.readFile(modulePath, 'utf8', function(err, data){
+						if ( err ){
+							console.error(modulePath);
+							console.error(err);
+							return;
+						}
+						
+						try{
+							vm.runInNewContext(data, {
+								'network': {
+									'name': self.name,
+									'nick': self.nick,
+									'commandChar': self.config.commandChar,
+									'logFile': self.config.logFile,
+									'logFormat': self.config.logFormat
+								},
+								'origin': origin,
+								'channel': msgTarget,
+								
+								'arguments': parts,
+								'moduleName': module,
+								'isQuery': msgTarget==self.nick,
+								
+								'reply': utils.takeArray(function(msg){
+									var target = msgTarget==self.nick ? origin.nick : msgTarget;
+									self.sendLine('PRIVMSG '+target+' :'+msg.replace(/[\r\n]/, ' '));
+								}),
+								'join': self.join,
+								'part': self.part,
+								
+								'setTimeout': function(fn, time){
+									setTimeout(function(){
+										try{
+											fn();
+										}
+										catch(ex){
+											console.error(ex);
+										}
+									}, time);
+								},
+								'clearTimeout': clearTimeout,
+								'setInterval': function(fn, time){
+									setInterval(function(){
+										try{
+											fn();
+										}
+										catch(ex){
+											console.error(ex);
+										}
+									}, time);
+								},
+								'clearInterval': clearInterval,
+								'console': console,
+								
+								'utils': utils,
+								'require': function(fileName){
+									return require(fileName.replace(/[^a-z_\-]/, ''));
+								}
+							}, modulePath);
+						}
+						catch(ex){
+							console.error(ex);
+						}
+					});
 				}
 				catch(ex){
 					console.error(ex);
@@ -211,16 +288,17 @@ module.exports = function(config, name){
 	});
 	
 	this.nick = function(nick){
+		nick = sanitize(nick);
 		self.nick = nick;
 		self.sendLine('NICK '+nick);
 	};
 	
 	this.join = utils.takeArray(function(channel){
-		self.sendLine('JOIN '+channel);
+		self.sendLine('JOIN '+sanitize(channel));
 	});
 	
 	this.part = utils.takeArray(function(channel){
-		self.sendLine('PART '+channel);
+		self.sendLine('PART '+sanitize(channel));
 	});
 	
 	// Local initialization

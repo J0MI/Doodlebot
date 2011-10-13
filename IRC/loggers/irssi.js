@@ -35,8 +35,8 @@ module.exports = function(writeLine, channel){
 	this.open = function(){
 		self.writeLine('--- Log opened '+dateTime());
 	};
-	this.close = function(){
-		self.writeLine('--- Log closed '+dateTime());
+	this.close = function(doneCallback){
+		self.writeLine('--- Log closed '+dateTime(), doneCallback);
 	};
 	
 	this.privmsg = function(origin, message){
@@ -50,8 +50,8 @@ module.exports = function(writeLine, channel){
 		timedLine('-!- '+origin.nick+' ['+origin.user+'@'+origin.host+'] has left '+self.channel+' ['+message+']');
 	};
 	
-	this.names = function(names){
-		timedLine('-!- Irssi: '+self.channel+': Total of '+names.length+' nicks');
+	this.names = function(nickList){
+		timedLine('-!- Irssi: '+self.channel+': Total of '+nickList.length+' nicks');
 		timedLine('-!- Irssi: Join to '+self.channel+' was synced in 0 secs');
 	};
 };
