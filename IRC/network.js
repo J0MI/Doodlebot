@@ -207,7 +207,20 @@ module.exports = function(config, name){
 						}
 						
 						try{
-							vm.runInNewContext(data, {
+							var replyFunc = utils.takeArray(function(msg){
+								var target = msgTarget==self.nick ? origin.nick : msgTarget;
+
+								if ( typeof(msg) == 'object' ){
+									if ( msg.message )
+										msg = msg.message;
+									else
+										msg = JSON.stringify(msg);
+								}
+
+								self.sendLine('PRIVMSG '+target+' :'+msg.replace(/[\r\n]/, ' '));
+							});
+							
+							vm.runInNewContext('(function(){try{'+data+'}catch(ex){onError(ex);}})()', {
 								'network': {
 									'name': self.name,
 									'nick': self.nick,
@@ -218,14 +231,14 @@ module.exports = function(config, name){
 								'origin': origin,
 								'channel': msgTarget,
 								
-								'arguments': parts,
+								'args': parts,
 								'moduleName': module,
 								'isQuery': msgTarget==self.nick,
 								
-								'reply': utils.takeArray(function(msg){
-									var target = msgTarget==self.nick ? origin.nick : msgTarget;
-									self.sendLine('PRIVMSG '+target+' :'+msg.replace(/[\r\n]/, ' '));
-								}),
+								'reply': replyFunc,
+								'usage': function(msg){
+									replyFunc('Usage: '+self.config.commandChar+moduleName+' '+msg);
+								},
 								'join': self.join,
 								'part': self.part,
 								
@@ -256,6 +269,10 @@ module.exports = function(config, name){
 								'utils': utils,
 								'require': function(fileName){
 									return require(fileName.replace(/[^a-z_\-]/, ''));
+								},
+								
+								'onError': function(ex){
+									console.error(ex);
 								}
 							}, modulePath);
 						}

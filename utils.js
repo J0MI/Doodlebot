@@ -1,5 +1,5 @@
 exports.forEach = function(obj, callback){
-	if ( obj instanceof Array ){
+	if ( Object.prototype.toString.call(obj) == '[object Array]' ){
 		for ( var i=0; i<obj.length; ++i ){
 			if ( callback(obj[i], i) == false )
 				return false;
@@ -16,10 +16,27 @@ exports.forEach = function(obj, callback){
 	return true;
 };
 
+
+exports.every = function(obj, callback){
+	return exports.forEach(obj, function(val, key){
+		return callback(val, key);
+	});
+};
+exports.none = function(obj, callback){
+	return exports.forEach(obj, function(val, key){
+		return !callback(val, key);
+	});
+};
+exports.some = function(obj, callback){
+	return !exports.forEach(obj, function(val, key){
+		return !callback(val, key);
+	});
+};
+
 exports.map = function(obj, callback){
 	var output;
 	
-	if ( obj instanceof Array ){
+	if ( Object.prototype.toString.call(obj) == '[object Array]' ){
 		output = [];
 		for ( var i=0; i<obj.length; ++i )
 			output[i] = callback(obj[i], i);
