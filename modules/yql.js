@@ -9,7 +9,10 @@ require('http').get({
 	res.on('end', function(){
 		try{
 			var data = JSON.parse(body);
-			data = data['query']['results'];
+			if ( data && data.query && data.query.results )
+				data = data.query.results;
+			else
+				reply('Invalid response');
 			
 			while (
 				typeof(data) == 'object' && (
