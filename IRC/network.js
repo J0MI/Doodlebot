@@ -239,8 +239,8 @@ module.exports = function(config, name){
 								'usage': function(msg){
 									replyFunc('Usage: '+self.config.commandChar+moduleName+' '+msg);
 								},
-								'join': self.join,
-								'part': self.part,
+								//'join': self.join,
+								//'part': self.part,
 								
 								'setTimeout': function(fn, time){
 									setTimeout(function(){
@@ -253,7 +253,9 @@ module.exports = function(config, name){
 									}, time);
 								},
 								'clearTimeout': clearTimeout,
-								'setInterval': function(fn, time){
+								
+                                                                /*
+                                                                'setInterval': function(fn, time){
 									setInterval(function(){
 										try{
 											fn();
@@ -264,11 +266,19 @@ module.exports = function(config, name){
 									}, time);
 								},
 								'clearInterval': clearInterval,
-								'console': console,
+                                                                */
+
+								//'console': console,
 								
 								'utils': utils,
 								'require': function(fileName){
-									return require(fileName.replace(/[^a-z_\-]/, ''));
+                                                                    fileName = fileName.replace(/[^a-z_\-]/, '');
+                                                                    if ( [
+                                                                        'http',
+                                                                        'crypto',
+                                                                        'dns'
+                                                                    ].indexOf(fileName) != -1 )
+									return require(fileName);
 								},
 								
 								'onError': function(ex){
