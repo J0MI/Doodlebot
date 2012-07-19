@@ -1,0 +1,40 @@
+{
+	"networkDefaults": {
+		"nick": ["Doodlebot"],
+		"user": "doodlebot doodlebot doodlebot :Doodlebot",
+		"pass": {
+			"source": "file",
+			"filename": "pass.txt"
+		},
+		"commandChar": ".",
+		"logFile": "~/logs/$NETWORK/$CHANNEL.log",
+		"logFormat": "irssi",
+		"allowedRequires": [
+			"util",
+			"events",
+			"domain",
+			"buffer",
+			"stream",
+			"crypto",
+			"tls",
+			"string_decoder",
+			"path",
+			"dns",
+			"http",
+			"https",
+			"url",
+			"querystring",
+			"punycode",
+			"zlib",
+			"os",
+			"ent",
+			"request"
+		]
+	},
+	"networks": {
+		"Freenode": {
+			"servers": ["chat.freenode.net:6667"],
+			"channels": ["#generirc"]
+		}
+	}
+}

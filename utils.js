@@ -34,16 +34,14 @@ exports.some = function(obj, callback){
 };
 
 exports.map = function(obj, callback){
-	var output;
-	
 	if ( Object.prototype.toString.call(obj) == '[object Array]' ){
-		output = [];
+		var output = [];
 		for ( var i=0; i<obj.length; ++i )
 			output[i] = callback(obj[i], i);
 		return output;
 	}
 	
-	output = {};
+	var output = {};
 	for ( var key in obj ){
 		if ( obj.hasOwnProperty(key) )
 			output[key] = callback(obj[key], key);
@@ -67,7 +65,7 @@ exports.takeArray = function(fn, context){
 			var rest = Array.prototype.concat.apply([], arguments);
 			rest.shift();
 			
-			var lastResult;
+			var lastResult = undefined;
 			for ( var i=0; i<arg.length; ++i )
 				lastResult = fn.apply(context || null, Array.prototype.concat.apply([arg[i]], rest));
 			return lastResult;

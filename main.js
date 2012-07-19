@@ -7,12 +7,16 @@ var utils = require('./utils.js');
 var networks = {};
 var apiServer = null;
 
+process.on('uncaughtException', function(err){
+	console.error('Caught exception: ' + err);
+});
+
 // Cleanup on exit
 var cleanup = function(){
 	console.log('Closing logs...');
 	
 	setTimeout(function(){
-		console.log('Log close timed out!')
+		console.log('Log close timed out!');
 		process.exit(0);
 	}, 1000);
 	
@@ -34,13 +38,21 @@ process.on('SIGINT', cleanup);
 
 // Load configuration data and initialize objects
 var cmdNetwork = null;
-var config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
-utils.forEach(config.networks, function(network, networkName){
-	if ( !cmdNetwork )
-		cmdNetwork = networkName;
-	utils.fillMissing(network, config.networkDefaults);
-	networks[networkName] = new IRC.Network(network, networkName);
-});
+var config = {};
+var loadConfig = function(){
+	config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
+	
+	utils.forEach(config.networks, function(network, networkName){
+		if ( !cmdNetwork )
+			cmdNetwork = networkName;
+		utils.fillMissing(network, config.networkDefaults);
+		if ( networks[networkName] )
+			networks[networkName].onConfig(network);
+		else
+			networks[networkName] = new IRC.Network(network, networkName);
+	});
+};
+loadConfig();
 
 // Connect to networks
 utils.forEach(networks, function(network){

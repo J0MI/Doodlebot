@@ -30,6 +30,10 @@ module.exports = function(config, name){
 	this.channels = {};
 	
 	// Event handlers
+	this.onConfig = function(config){
+		self.config = config;
+	};
+	
 	this.onConnect = function(){
 		var pass = 'anonymous';
 		if ( self.config.pass ){
@@ -182,118 +186,105 @@ module.exports = function(config, name){
 			},
 			'PRIVMSG': function(args, msg){
 				var msgTarget = args.shift();
+				var parts = msg.split(/\s+/);
 				
 				if ( self.channels[msgTarget] && self.channels[msgTarget].logger )
 					self.channels[msgTarget].logger.privmsg(origin, msg);
 				
-				if ( msg[0] != self.config.commandChar )
-					return;
-				
-				var parts = msg.substr(1).split(/\s+/);
-				var module = parts.shift();
-				var modulePath = path.resolve('modules/'+module.replace(/[\.\r\n]/g, '')+'.js');
-				
-				if ( !path.existsSync(modulePath) ){
-					self.sendLine('PRIVMSG '+msgTarget+' :Command not found: '+module);
-					return;
-				}
-				
-				try{
-					fs.readFile(modulePath, 'utf8', function(err, data){
-						if ( err ){
-							console.error(modulePath);
-							console.error(err);
-							return;
-						}
-						
-						try{
-							var replyFunc = utils.takeArray(function(msg){
-								var target = msgTarget==self.nick ? origin.nick : msgTarget;
-
-								if ( typeof(msg) == 'object' ){
-									if ( msg.message )
-										msg = msg.message;
-									else
-										msg = JSON.stringify(msg);
-								}
-
-								self.sendLine('PRIVMSG '+target+' :'+msg.replace(/[\r\n]/, ' '));
-							});
+				var runModule = function(module, modulePath, parts){
+					try{
+						fs.readFile(modulePath, 'utf8', function(err, data){
+							if ( err ){
+								console.error(modulePath);
+								console.error(err);
+								return;
+							}
 							
-							vm.runInNewContext('(function(){try{'+data+'}catch(ex){onError(ex);}})()', {
-								'network': {
-									'name': self.name,
-									'nick': self.nick,
-									'commandChar': self.config.commandChar,
-									'logFile': self.config.logFile,
-									'logFormat': self.config.logFormat
-								},
-								'origin': origin,
-								'channel': msgTarget,
+							try{
+								var replyTarget = msgTarget==self.nick ? origin.nick : msgTarget;
+								var replyFunc = utils.takeArray(function(msg){
+									if ( typeof(msg) == 'object' ){
+										if ( msg.message )
+											msg = msg.message;
+										else
+											msg = JSON.stringify(msg);
+									}
+	
+									self.sendLine('PRIVMSG '+replyTarget+' :'+msg.replace(/[\r\n]/, ' '));
+								});
 								
-								'args': parts,
-								'moduleName': module,
-								'isQuery': msgTarget==self.nick,
-								
-								'reply': replyFunc,
-								'usage': function(msg){
-									replyFunc('Usage: '+self.config.commandChar+moduleName+' '+msg);
-								},
-								//'join': self.join,
-								//'part': self.part,
-								
-								'setTimeout': function(fn, time){
-									setTimeout(function(){
-										try{
-											fn();
-										}
-										catch(ex){
-											console.error(ex);
-										}
-									}, time);
-								},
-								'clearTimeout': clearTimeout,
-								
-                                                                /*
-                                                                'setInterval': function(fn, time){
-									setInterval(function(){
-										try{
-											fn();
-										}
-										catch(ex){
-											console.error(ex);
-										}
-									}, time);
-								},
-								'clearInterval': clearInterval,
-                                                                */
+								vm.runInNewContext('(function(){try{'+data+'}catch(ex){onError(ex);}})()', {
+									'network': {
+										'name': self.name,
+										'nick': self.nick,
+										'commandChar': self.config.commandChar,
+										'logFile': self.config.logFile,
+										'logFormat': self.config.logFormat
+									},
+									'origin': origin,
+									'channel': msgTarget,
+									
+									'args': parts,
+									'moduleName': module,
+									'isQuery': msgTarget==self.nick,
+									
+									'reply': replyFunc,
+									'usage': function(msg){
+										replyFunc('Usage: '+self.config.commandChar+moduleName+' '+msg);
+									},
+									
+									'setTimeout': function(fn, time){
+										setTimeout(function(){
+											try{
+												fn();
+											}
+											catch(ex){
+												console.error(ex);
+											}
+										}, time);
+									},
+									'clearTimeout': clearTimeout,
+									
+									'utils': utils,
+									'require': function(fileName){
+	                                    fileName = fileName.replace(/[^a-z_\-]/, '');
+	                                    if ( self.config.allowedRequires.indexOf(fileName) != -1 )
+	                                    	return require(fileName);
+	                                    return null;
+									},
+									
+									'onError': function(ex){
+										console.error(ex);
+									}
+								}, modulePath);
+							}
+							catch(ex){
+								console.error(ex);
+							}
+						});
+					}
+					catch(ex){
+						console.error(ex);
+					}
+				};
 
-								//'console': console,
-								
-								'utils': utils,
-								'require': function(fileName){
-                                                                    fileName = fileName.replace(/[^a-z_\-]/, '');
-                                                                    if ( [
-                                                                        'http',
-                                                                        'crypto',
-                                                                        'dns'
-                                                                    ].indexOf(fileName) != -1 )
-									return require(fileName);
-								},
-								
-								'onError': function(ex){
-									console.error(ex);
-								}
-							}, modulePath);
-						}
-						catch(ex){
-							console.error(ex);
-						}
-					});
+				if ( msg[0] == self.config.commandChar ){
+					var module = parts[0].substr(1);
+					var modulePath = path.resolve('modules/'+module.replace(/[\.\r\n]/g, '')+'.js');
+					if ( fs.existsSync(modulePath) )
+						runModule(module, modulePath, parts.slice(1));
+					else
+						self.sendLine('PRIVMSG '+msgTarget+' :Command not found: '+module);
 				}
-				catch(ex){
-					console.error(ex);
-				}
+				
+				utils.forEach(fs.readdirSync('modules/any/'), function(module){
+					if ( module && !/\.js$/.test(module) )
+						return;
+					
+					module = module.substr(0, module.length-3);
+					var modulePath = path.resolve('modules/any/'+module.replace(/[\.\r\n]/g, '')+'.js');
+					runModule(module, modulePath, parts);
+				});
 			}
 		};
 		
