@@ -230,7 +230,7 @@ module.exports = function(config, name){
 									
 									'reply': replyFunc,
 									'usage': function(msg){
-										replyFunc('Usage: '+self.config.commandChar+moduleName+' '+msg);
+										replyFunc('Usage: '+self.config.commandChar+module+' '+msg);
 									},
 									
 									'setTimeout': function(fn, time){

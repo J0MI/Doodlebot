@@ -5,7 +5,7 @@ if ( !utils.some(['A', 'AAAA', 'MX', 'TXT', 'SRV', 'PTR', 'NS', 'CNAME'], functi
 
 if ( rectype ){
 	require('dns').resolve(args.shift(), rectype, function(err, addr){
-		if ( addr && (addr.length===undefined || addr.length==0) )
+		if ( addr )
 			reply(addr.length==1 ? addr[0] : JSON.stringify(addr));
 		else
 			reply('No results');
