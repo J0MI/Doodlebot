@@ -253,6 +253,16 @@ module.exports = function(config, name){
 	                                    return null;
 									},
 									
+									'getModuleNames': function(){
+										var names = [];
+										utils.forEach(fs.readdirSync('modules/'), function(fname){
+											if ( fname && /\.js$/.test(fname) )
+												names.push(fname.substr(0, fname.length-3));
+										});
+										return names;
+									},
+									'runModule': runCommandModule,
+									
 									'onError': function(ex){
 										console.error(ex);
 									}
@@ -267,16 +277,20 @@ module.exports = function(config, name){
 						console.error(ex);
 					}
 				};
+				
+				var runCommandModule = function(module, args){
+					var modulePath = path.resolve('modules/'+module.replace(/[\.\r\n]/g, '')+'.js');
+					if ( fs.existsSync(modulePath) )
+						runModule(module, modulePath, args);
+				};
 
 				if ( msg[0] == self.config.commandChar ){
 					var module = parts[0].substr(1);
-					var modulePath = path.resolve('modules/'+module.replace(/[\.\r\n]/g, '')+'.js');
-					if ( fs.existsSync(modulePath) )
-						runModule(module, modulePath, parts.slice(1));
+					runCommandModule(module, parts.slice(1));
 				}
 				
 				utils.forEach(fs.readdirSync('modules/any/'), function(module){
-					if ( module && !/\.js$/.test(module) )
+					if ( !module || !/\.js$/.test(module) )
 						return;
 					
 					module = module.substr(0, module.length-3);
