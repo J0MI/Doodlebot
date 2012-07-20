@@ -210,7 +210,7 @@ module.exports = function(config, name){
 											msg = JSON.stringify(msg);
 									}
 	
-									self.sendLine('PRIVMSG '+replyTarget+' :'+msg.replace(/[\r\n]/, ' '));
+									self.sendLine('PRIVMSG '+replyTarget+' :'+(''+msg).replace(/[\r\n]/, ' '));
 								});
 								
 								vm.runInNewContext('(function(){try{'+data+'}catch(ex){onError(ex);}})()', {

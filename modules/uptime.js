@@ -1,2 +1,2 @@
-reply(''+require('os').uptime());
+reply('Uptime: '+require('os').uptime());
 

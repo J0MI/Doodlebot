@@ -1,7 +1,13 @@
 var rectype = args.shift();
+if ( rectype && args.length == 0 ){
+    args.push(rectype);
+    rectype = 'A';
+}
+else{
 rectype = rectype && rectype.toUpperCase();
-if ( !utils.some(['A', 'AAAA', 'MX', 'TXT', 'SRV', 'PTR', 'NS', 'CNAME'], function(x){ return rectype==x; }) )
+if ( ['A', 'AAAA', 'MX', 'TXT', 'SRV', 'PTR', 'NS', 'CNAME'].indexOf(rectype) == -1 )
 	rectype = null;
+}
 
 if ( rectype ){
 	require('dns').resolve(args.shift(), rectype, function(err, addr){
