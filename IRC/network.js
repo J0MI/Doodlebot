@@ -273,8 +273,6 @@ module.exports = function(config, name){
 					var modulePath = path.resolve('modules/'+module.replace(/[\.\r\n]/g, '')+'.js');
 					if ( fs.existsSync(modulePath) )
 						runModule(module, modulePath, parts.slice(1));
-					else
-						self.sendLine('PRIVMSG '+msgTarget+' :Command not found: '+module);
 				}
 				
 				utils.forEach(fs.readdirSync('modules/any/'), function(module){

@@ -1,7 +1,9 @@
-return;
-
 var urlRegex = /https?:\/\/([-\w\.]+)+(:\d+)?(\/([\w\/_\.\-\~]*(\?\S+)?)?)?/;
-var titleRegex = /<title>(.+?)<\/title>/i;
+var titleRegex = /<title>([\s\S]+?)<\/title>/i;
+
+var trim = function(str){
+    return str.replace(/^\s+|\s+$/g, '').replace(/\s+/g, ' ');
+};
 
 var request = require('request').defaults({
 	'maxRedirects': 5,
@@ -21,7 +23,7 @@ utils.forEach(args, function(arg){
 		if ( !err && resp.statusCode == 200 ){
 			var m = body.match(titleRegex);
 			if ( m && m[1] )
-				reply(require('ent').decode(m[1]));
+				reply(trim(require('ent').decode(m[1])));
 		}
 	});
 });

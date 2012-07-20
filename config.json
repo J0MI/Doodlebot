@@ -34,7 +34,7 @@
 	"networks": {
 		"Freenode": {
 			"servers": ["chat.freenode.net:6667"],
-			"channels": ["#generirc"]
+			"channels": ["#generirc", "#quadrivium"]
 		}
 	}
 }
