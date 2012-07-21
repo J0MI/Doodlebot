@@ -15,10 +15,10 @@ if ( rectype ){
 			reply(addr.length==1 ? addr[0] : JSON.stringify(addr));
 		else
 			reply('No results');
-                done();
+		done();
 	});
 }
 else{
 	usage('(A|AAAA|MX|TXT|SRV|NS|CNAME|PTR) (domain|IP)');
-        done();
+	done();
 }
