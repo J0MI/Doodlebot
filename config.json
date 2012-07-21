@@ -9,6 +9,7 @@
 		"commandChar": ".",
 		"logFile": "~/logs/$NETWORK/$CHANNEL.log",
 		"logFormat": "irssi",
+                "scriptPrefix": "",
 		"allowedRequires": [
 			"util",
 			"events",
