@@ -252,31 +252,31 @@ module.exports = function(config, name){
 									'isQuery': msgTarget==self.nick
 								}
 							});
-
-							var runCommandModule = function(module, args){
-								var modulePath = path.resolve('modules/'+module.replace(/[\.\r\n]/g, '')+'.js');
-								if ( fs.existsSync(modulePath) )
-									runModule(module, modulePath, args);
-							};
-
-							if ( msg[0] == self.config.commandChar ){
-								var module = parts[0].substr(1);
-								runCommandModule(module, parts.slice(1));
-							}
-
-							utils.forEach(fs.readdirSync('modules/any/'), function(module){
-								if ( !module || !/\.js$/.test(module) )
-									return;
-
-								module = module.substr(0, module.length-3);
-								var modulePath = path.resolve('modules/any/'+module.replace(/[\.\r\n]/g, '')+'.js');
-								runModule(module, modulePath, parts);
-							});
 						}
 						catch(ex){
 							replyFunc(ex);
 						}
 					};
+
+					var runCommandModule = function(module, args){
+						var modulePath = path.resolve('modules/'+module.replace(/[\.\r\n]/g, '')+'.js');
+						if ( fs.existsSync(modulePath) )
+							runModule(module, modulePath, args);
+					};
+
+					if ( msg[0] == self.config.commandChar ){
+						var module = parts[0].substr(1);
+						runCommandModule(module, parts.slice(1));
+					}
+
+					utils.forEach(fs.readdirSync('modules/any/'), function(module){
+						if ( !module || !/\.js$/.test(module) )
+							return;
+
+						module = module.substr(0, module.length-3);
+						var modulePath = path.resolve('modules/any/'+module.replace(/[\.\r\n]/g, '')+'.js');
+						runModule(module, modulePath, parts);
+					});
 				}
 		};
 
