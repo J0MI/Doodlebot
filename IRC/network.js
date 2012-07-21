@@ -214,7 +214,7 @@ module.exports = function(config, name){
 									replyFunc(module + ' timed out!');
 								}, self.config.moduleTimeout);
 							}
-							
+
 							child.on('message', function(msg){
 								if ( !msg )
 									return;
@@ -249,7 +249,7 @@ module.exports = function(config, name){
 
 									'args': parts,
 									'moduleName': module,
-									'isQuery': msgTarget==self.nick,
+									'isQuery': msgTarget==self.nick
 								}
 							});
 
@@ -277,41 +277,44 @@ module.exports = function(config, name){
 							replyFunc(ex);
 						}
 					};
-
-					if ( callbacks[command] )
-						callbacks[command](parts, payload);
-					else if ( replycodes[command] && callbacks[replycodes[command]] )
-						callbacks[replycodes[command]](parts, payload);
-				};
-
-				// Functions
-				this.connect = function(){
-					var serverparts = self.config.servers[0].split(':');
-					self.sock.connect(+(serverparts[1] || 6667), serverparts[0]);
-				};
-
-				this.sendLine = utils.takeArray(function(line){
-					console.log('<< '+line);
-					self.sock.write(line+"\r\n");
-				});
-
-				this.nick = function(nick){
-					nick = sanitize(nick);
-					self.nick = nick;
-					self.sendLine('NICK '+nick);
-				};
-
-				this.join = utils.takeArray(function(channel){
-					self.sendLine('JOIN '+sanitize(channel));
-				});
-
-				this.part = utils.takeArray(function(channel){
-					self.sendLine('PART '+sanitize(channel));
-				});
-
-				// Local initialization
-				this.sock.setEncoding('utf8');
-				this.sock.on('connect', this.onConnect);
-				this.sock.on('close', this.onDisconnect);
-				this.sock.on('data', this.onData);
+				}
 		};
+
+		if ( callbacks[command] )
+			callbacks[command](parts, payload);
+		else if ( replycodes[command] && callbacks[replycodes[command]] )
+			callbacks[replycodes[command]](parts, payload);
+
+	};
+
+	// Functions
+	this.connect = function(){
+		var serverparts = self.config.servers[0].split(':');
+		self.sock.connect(+(serverparts[1] || 6667), serverparts[0]);
+	};
+
+	this.sendLine = utils.takeArray(function(line){
+		console.log('<< '+line);
+		self.sock.write(line+"\r\n");
+	});
+
+	this.nick = function(nick){
+		nick = sanitize(nick);
+		self.nick = nick;
+		self.sendLine('NICK '+nick);
+	};
+
+	this.join = utils.takeArray(function(channel){
+		self.sendLine('JOIN '+sanitize(channel));
+	});
+
+	this.part = utils.takeArray(function(channel){
+		self.sendLine('PART '+sanitize(channel));
+	});
+
+	// Local initialization
+	this.sock.setEncoding('utf8');
+	this.sock.on('connect', this.onConnect);
+	this.sock.on('close', this.onDisconnect);
+	this.sock.on('data', this.onData);
+};
