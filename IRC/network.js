@@ -5,7 +5,6 @@ var vm = require('vm');
 var child_process = require('child_process');
 var util = require('util');
 
-var utils = require('../utils.js');
 var replycodes = require('./replycodes.js');
 
 var loggers = {
@@ -57,13 +56,19 @@ module.exports = function(config, name){
 
 	this.onExit = function(doneCallback){
 		var stillWorking = 0;
-		utils.forEach(self.channels, function(chan){
+		self.channels.forEach(function(chan){
 			if ( chan && chan.logger && chan.logger.close ){
 				++stillWorking;
-				chan.logger.close(utils.once(function(){
+				
+				var hasClosed = false;
+				chan.logger.close(function(){
+					if ( hasClosed )
+						return;
+					hasClose = true;
+					
 					if ( --stillWorking == 0 )
 						doneCallback();
-				}));
+				});
 			}
 		});
 	};
@@ -74,7 +79,9 @@ module.exports = function(config, name){
 
 		var lines = self.dataBuffer.split("\r\n");
 		self.dataBuffer = lines.pop();
-		utils.forEach(lines, self.onLine);
+		lines.forEach(function(line){
+			self.onLine(line);
+		});
 	};
 
 	this.onLine = function(line){
@@ -110,7 +117,9 @@ module.exports = function(config, name){
 		var callbacks = {
 				'RPL_ENDOFMOTD': function(args){ // End of MOTD, safe to join channels
 					self.nick = args[0];
-					self.join(self.config.channels);
+					self.config.channels.forEach(function(name){
+						self.join(name);
+					});
 				},
 				'RPL_NOTOPIC': function(args, topic){
 					args.shift();
@@ -129,7 +138,7 @@ module.exports = function(config, name){
 					args.shift();
 
 					var channel = args.shift();
-					nicks = utils.map(nicks.split(' '), function(str){
+					nicks = nicks.split(' ').map(function(str){
 						return str.replace(/^[@+]/, '');
 					});
 
@@ -161,7 +170,7 @@ module.exports = function(config, name){
 								'logStream': logFile && fs.createWriteStream(logFile, {'flags': 'a','encoding':'utf8'})
 						};
 						if ( self.config.logFormat ){
-							chan.logger = new loggers[self.config.logFormat](utils.takeArray(function(line, doneCallback){
+							chan.logger = new loggers[self.config.logFormat](function(line, doneCallback){
 								var drained = chan.logStream.write(line+"\n");
 								if ( doneCallback ){
 									if ( drained )
@@ -169,7 +178,7 @@ module.exports = function(config, name){
 									else
 										chan.logStream.once('drain', doneCallback);
 								}
-							}), channel);
+							}, channel);
 							chan.logger.open();
 						}
 					}
@@ -195,7 +204,7 @@ module.exports = function(config, name){
 
 					var runModule = function(module, modulePath, parts){
 						var replyTarget = msgTarget==self.nick ? origin.nick : msgTarget;
-						var replyFunc = utils.takeArray(function(msg){
+						var replyFunc = function(msg){
 							if ( typeof(msg) == 'object' ){
 								if ( msg.message )
 									msg = msg.message;
@@ -204,7 +213,7 @@ module.exports = function(config, name){
 							}
 
 							self.sendLine('PRIVMSG '+replyTarget+' :'+(''+msg).replace(/[\r\n]/, ' '));
-						});
+						};
 
 						try{
 							var child = child_process.fork('module_runner.js', [module, modulePath, parts], {
@@ -272,7 +281,7 @@ module.exports = function(config, name){
 						runCommandModule(module, parts.slice(1));
 					}
 
-					utils.forEach(fs.readdirSync('modules/any/'), function(module){
+					fs.readdirSync('modules/any/').forEach(function(module){
 						if ( !module || !/\.js$/.test(module) )
 							return;
 
@@ -296,10 +305,10 @@ module.exports = function(config, name){
 		self.sock.connect(+(serverparts[1] || 6667), serverparts[0]);
 	};
 
-	this.sendLine = utils.takeArray(function(line){
+	this.sendLine = function(line){
 		console.log('<< '+line);
 		self.sock.write(line+"\r\n");
-	});
+	};
 
 	this.nick = function(nick){
 		nick = sanitize(nick);
@@ -307,13 +316,13 @@ module.exports = function(config, name){
 		self.sendLine('NICK '+nick);
 	};
 
-	this.join = utils.takeArray(function(channel){
+	this.join = function(channel){
 		self.sendLine('JOIN '+sanitize(channel));
-	});
+	};
 
-	this.part = utils.takeArray(function(channel){
+	this.part = function(channel){
 		self.sendLine('PART '+sanitize(channel));
-	});
+	};
 
 	// Local initialization
 	this.sock.setEncoding('utf8');

@@ -2,7 +2,6 @@ var fs = require('fs');
 var http = require('http');
 var urlParser = require('url');
 var IRC = require('./IRC');
-var utils = require('./utils.js');
 
 var networks = {};
 var apiServer = null;
@@ -21,14 +20,20 @@ var cleanup = function(){
 	}, 1000);
 	
 	var stillWorking = 0;
-	utils.forEach(networks, function(network){
+	networks.forEach(function(network){
 		++stillWorking;
-		network.onExit(utils.once(function(){
+		
+		var hasExit = false;
+		network.onExit(function(){
+			if ( hasExit )
+				return;
+			hasExit = true;
+			
 			if ( --stillWorking == 0 ){
 				console.log('All logs closed!');
 				process.exit(0);
 			}
-		}));
+		});
 	});
 	
 	if ( apiServer )
@@ -42,10 +47,17 @@ var config = {};
 var loadConfig = function(){
 	config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
 	
-	utils.forEach(config.networks, function(network, networkName){
+	Object.keys(config.networks).forEach(function(networkName){
+		var network = config.networks[networkName];
+		
 		if ( !cmdNetwork )
 			cmdNetwork = networkName;
-		utils.fillMissing(network, config.networkDefaults);
+		
+		Object.keys(config.networkDefaults).forEach(function(key){
+			if ( network[key] === undefined )
+				network[key] = config.networkDefaults[key];
+		});
+		
 		if ( networks[networkName] )
 			networks[networkName].onConfig(network);
 		else
@@ -55,8 +67,8 @@ var loadConfig = function(){
 loadConfig();
 
 // Connect to networks
-utils.forEach(networks, function(network){
-	network.connect();
+Object.keys(networks).forEach(function(networkName){
+	networks[networkName].connect();
 });
 
 // Run API server

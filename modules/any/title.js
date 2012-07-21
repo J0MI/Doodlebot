@@ -14,7 +14,7 @@ var request = require('request').defaults({
 	}
 });
 
-utils.forEach(args, function(arg){
+args.forEach(function(arg){
 	var m = arg.match(urlRegex);
 	if ( !m || !m[0] )
 		return;

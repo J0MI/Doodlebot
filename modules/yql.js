@@ -17,9 +17,9 @@ require('http').get({
 			while (
 				typeof(data) == 'object' && (
 					( Object.keys(data).length == 1 && (data = data[Object.keys(data)[0]]) ) ||
-					( Object.prototype.toString.call(data) == '[object Array]' && utils.every(data, function(val){
+					( Object.prototype.toString.call(data) == '[object Array]' && data.every(function(val){
 						return typeof(val)=='object' && Object.keys(val).length == 1;
-					}) && (data = utils.map(data, function(val){ return val[Object.keys(val)[0]]; })) )
+					}) && (data = data.map(function(val){ return val[Object.keys(val)[0]]; })) )
 				)
 			);
 			

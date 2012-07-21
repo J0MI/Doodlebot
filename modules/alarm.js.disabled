@@ -10,7 +10,7 @@ if ( args.length == 0 ){
 var gotAt = false;
 var msg = [];
 var time = [];
-utils.forEach(args, function(arg){
+args.forEach(function(arg){
 	if ( arg == '@' )
 		gotAt = true;
 	else{
