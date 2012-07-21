@@ -3,6 +3,7 @@ var fs = require('fs');
 var path = require('path');
 var vm = require('vm');
 var child_process = require('child_process');
+var util = require('util');
 
 var utils = require('../utils.js');
 var replycodes = require('./replycodes.js');
@@ -206,14 +207,15 @@ module.exports = function(config, name){
 						});
 
 						try{
-							var child = child_process.fork('module_runner.js', [module, modulePath, parts]);
-							if ( self.config.moduleTimeout ){
-								setTimeout(function(){
-									child.disconnect();
-									child.kill('SIGKILL');
-									replyFunc(module + ' timed out!');
-								}, self.config.moduleTimeout);
-							}
+							var child = child_process.fork('module_runner.js', [module, modulePath, parts], {
+                                                            'timeout': self.config.moduleTimeout,
+                                                            'killSignal': 'SIGKILL'
+                                                        });
+                                                        
+                                                        child.on('exit', function(code, signal){
+                                                            if ( signal )
+                                                                replyFunc(module + ' timed out');
+                                                        });
 
 							child.on('message', function(msg){
 								if ( !msg )
@@ -221,7 +223,7 @@ module.exports = function(config, name){
 
 								switch ( msg.type ){
 								case 'exception':
-									replyFunc(msg.ex);
+									replyFunc('Exception: ' + util.inspect(msg.ex, true));
 									break;
 								case 'reply':
 									replyFunc(msg.msg);
@@ -254,7 +256,8 @@ module.exports = function(config, name){
 							});
 						}
 						catch(ex){
-							replyFunc(ex);
+							replyFunc('Outer exception: ' + util.inspect(ex, true));
+                                                        console.error('Outer exception', ex);
 						}
 					};
 

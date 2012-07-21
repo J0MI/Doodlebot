@@ -1,7 +1,8 @@
-var utils = require('../utils.js');
 var fs = require('fs');
+var vm = require('vm');
 
 process.on('uncaughtException', function(err){
+        console.error('exception', err);
 	process.send({
 		'type': 'exception',
 		'ex': err
@@ -16,10 +17,10 @@ function runModule(rundata){
 
 	var allowedRequires = rundata.network.allowedRequires.slice();
 	rundata.require = function(fileName){
-        fileName = fileName.replace(/[^a-z_\-]/, '');
-        if ( allowedRequires.indexOf(fileName) != -1 )
+            fileName = fileName.replace(/[^a-z_\-]/, '');
+            if ( allowedRequires.indexOf(fileName) != -1 )
         	return require(fileName);
-        return null;
+            return null;
 	};
 	
 	rundata.reply = function(msg){
@@ -41,8 +42,8 @@ function runModule(rundata){
 	};
 	rundata.getModuleNames = function(){
 		var names = [];
-		utils.forEach(fs.readdirSync('../modules/'), function(fname){
-			if ( fname && /\.js$/.test(fname) )
+		fs.readdirSync('modules/').forEach(function(fname){
+			if ( fname && (/\.js$/).test(fname) )
 				names.push(fname.substr(0, fname.length-3));
 		});
 		return names;
@@ -59,6 +60,7 @@ function runModule(rundata){
 
 	fs.readFile(modulePath, 'utf8', function(err, data){
 		if ( err ){
+                        console.error('readFile exception', err);
 			process.send({
 				'type': 'exception',
 				'ex': err
@@ -66,14 +68,17 @@ function runModule(rundata){
 			return;
 		}
 
-		vm.runInNewContext('(function(){'+data+'}).apply(moduleName, args);', rundata, modulePath);
+		vm.runInNewContext('(function(){'+data+'})();', rundata, modulePath);
 	});
 	
 	process.disconnect();
 }
 
 process.on('message', function(obj){
-	if ( obj && obj.rundata )
-		runModule(rundata);
+	if ( obj && obj.rundata ){
+            setTimeout(function(){
+                runModule(obj.rundata);
+            }, 1);
+        }
 });
 
