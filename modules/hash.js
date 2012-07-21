@@ -22,3 +22,5 @@ switch ( algo && algo.toUpperCase() ){
 	default:
 		usage('algorithm[.(hex|base64)] data, available algorithms are: MD5, SHA1, SHA256, SHA512');
 }
+
+done();

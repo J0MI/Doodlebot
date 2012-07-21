@@ -1,7 +1,7 @@
 var raw = args.shift();
 if ( raw.substr(0,1) != 's' ){
 	reply('Only replacement is supported for now.');
-	return;
+	return done();;
 }
 
 // [
@@ -16,10 +16,11 @@ var parts = raw.split('').reverse().join('').match(/^([gim]*)(.)(.*?)\2(?!\\)(.*
 
 if ( !parts ){
 	reply('Syntax error in regular expression!');
-	return;
+	return done();;
 }
 
 parts = parts.map(function(x){return x.split('').reverse().join('');});
 
 var reg = new RegExp(parts[4], parts[1]);
 reply(args.join(' ').replace(reg, parts[3]));
+done();

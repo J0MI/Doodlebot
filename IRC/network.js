@@ -56,7 +56,8 @@ module.exports = function(config, name){
 
 	this.onExit = function(doneCallback){
 		var stillWorking = 0;
-		self.channels.forEach(function(chan){
+		Object.keys(self.channels).forEach(function(chanName){
+                        var chan = self.channels[chanName];
 			if ( chan && chan.logger && chan.logger.close ){
 				++stillWorking;
 				
@@ -216,17 +217,23 @@ module.exports = function(config, name){
 						};
 
 						try{
-							var child = child_process.fork('module_runner.js', [module, modulePath, parts], {
-                                                            'timeout': self.config.moduleTimeout,
-                                                            'killSignal': 'SIGKILL'
-                                                        });
-                                                        
-                                                        child.on('exit', function(code, signal){
-                                                            if ( signal )
-                                                                replyFunc(module + ' timed out');
-                                                        });
+							var child = child_process.fork('module_runner.js', [module, modulePath, parts]);
+                                                        var timeoutTimeout = null;
+                                                        if ( self.config.moduleTimeout ){
+                                                            timeoutTimeout = setTimeout(function(){
+                                                                child.kill('SIGKILL');
+                                                                replyFunc(module + ' timed out!');
+                                                            }, self.config.moduleTimeout);
+                                                        }
 
-							child.on('message', function(msg){
+                                                        child.on('exit', function(){
+                                                            if ( timeoutTimeout ){
+                                                                clearTimeout(timeoutTimeout);
+                                                                timeoutTimeout = null;
+                                                            }
+                                                        });
+							
+                                                        child.on('message', function(msg){
 								if ( !msg )
 									return;
 

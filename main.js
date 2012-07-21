@@ -20,7 +20,9 @@ var cleanup = function(){
 	}, 1000);
 	
 	var stillWorking = 0;
-	networks.forEach(function(network){
+	Object.keys(networks).forEach(function(networkName){
+                var network = networks[networkName];
+
 		++stillWorking;
 		
 		var hasExit = false;

@@ -27,3 +27,6 @@ args.forEach(function(arg){
 		}
 	});
 });
+
+done();
+

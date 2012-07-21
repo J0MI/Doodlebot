@@ -28,7 +28,9 @@ require('http').get({
 		catch(e){
 			reply(e.message);
 		}
+                done();
 	});
 }).on('error', function(e){
 	reply(e.message);
+        done();
 });

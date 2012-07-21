@@ -32,6 +32,10 @@ function runModule(rundata){
 	rundata.usage = function(msg){
 		rundata.reply('Usage: ' + rundata.network.commandChar + module + ' ' + msg);
 	};
+
+        rundata.done = function(){
+                process.disconnect();
+        };
 	
 	rundata.runModule = function(module, args){
 		process.send({
@@ -70,8 +74,6 @@ function runModule(rundata){
 
 		vm.runInNewContext('(function(){'+data+'})();', rundata, modulePath);
 	});
-	
-	process.disconnect();
 }
 
 process.on('message', function(obj){
