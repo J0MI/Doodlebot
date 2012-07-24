@@ -5,7 +5,7 @@ process.on('uncaughtException', function(err){
         console.error('exception', err);
 	process.send({
 		'type': 'exception',
-		'ex': err
+		'ex': ''+err
 	});
 	process.exit(1);
 });
@@ -17,7 +17,6 @@ function runModule(rundata){
 
 	var allowedRequires = rundata.network.allowedRequires.slice();
 	rundata.require = function(fileName){
-            fileName = fileName.replace(/[^a-z_\-]/, '');
             if ( allowedRequires.indexOf(fileName) != -1 )
         	return require(fileName);
             return null;
@@ -30,7 +29,7 @@ function runModule(rundata){
 		});
 	};
 	rundata.usage = function(msg){
-		rundata.reply('Usage: ' + rundata.network.commandChar + module + ' ' + msg);
+		rundata.reply('\002Usage:\002 ' + rundata.network.commandChar + module + ' ' + msg);
 	};
 
         rundata.done = function(){
@@ -67,7 +66,7 @@ function runModule(rundata){
                         console.error('readFile exception', err);
 			process.send({
 				'type': 'exception',
-				'ex': err
+				'ex': ''+err
 			});
 			return;
 		}

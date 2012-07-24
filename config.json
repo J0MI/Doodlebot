@@ -9,7 +9,7 @@
 		"commandChar": ".",
 		"logFile": "~/logs/$NETWORK/$CHANNEL.log",
 		"logFormat": "irssi",
-		"moduleTimeout": 3000,
+		"moduleTimeout": 6000,
 		"allowedRequires": [
 			"util",
 			"events",
@@ -29,7 +29,10 @@
 			"zlib",
 			"os",
 			"ent",
-			"request"
+			"request",
+                        "node-expat",
+                        "xml2json",
+                        "iconv"
 		]
 	},
 	"networks": {

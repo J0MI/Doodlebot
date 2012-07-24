@@ -215,6 +215,12 @@ module.exports = function(config, name){
 
 							self.sendLine('PRIVMSG '+replyTarget+' :'+(''+msg).replace(/[\r\n]/, ' '));
 						};
+                                                
+                                                var basePath = path.resolve('modules/');
+                                                if ( modulePath.substr(0, basePath.length) != basePath ){
+                                                    replyFunc('No hacking!');
+                                                    return;
+                                                }
 
 						try{
 							var child = child_process.fork('module_runner.js', [module, modulePath, parts]);
@@ -239,7 +245,7 @@ module.exports = function(config, name){
 
 								switch ( msg.type ){
 								case 'exception':
-									replyFunc('Exception: ' + util.inspect(msg.ex, true));
+									replyFunc('\002Exception:\002 ' + msg.ex);
 									break;
 								case 'reply':
 									replyFunc(msg.msg);
@@ -272,13 +278,13 @@ module.exports = function(config, name){
 							});
 						}
 						catch(ex){
-							replyFunc('Outer exception: ' + util.inspect(ex, true));
+							replyFunc('\002Outer exception:\002 ' + ex);
                                                         console.error('Outer exception', ex);
 						}
 					};
 
 					var runCommandModule = function(module, args){
-						var modulePath = path.resolve('modules/'+module.replace(/[\.\r\n]/g, '')+'.js');
+						var modulePath = path.resolve('modules/'+module+'.js');
 						if ( fs.existsSync(modulePath) )
 							runModule(module, modulePath, args);
 					};
@@ -293,7 +299,7 @@ module.exports = function(config, name){
 							return;
 
 						module = module.substr(0, module.length-3);
-						var modulePath = path.resolve('modules/any/'+module.replace(/[\.\r\n]/g, '')+'.js');
+						var modulePath = path.resolve('modules/any/'+module+'.js');
 						runModule(module, modulePath, parts);
 					});
 				}

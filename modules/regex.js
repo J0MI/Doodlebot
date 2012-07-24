@@ -1,7 +1,11 @@
 var raw = args.shift();
 if ( raw.substr(0,1) != 's' ){
 	reply('Only replacement is supported for now.');
-	return done();;
+	return done();
+}
+
+function flip(str) {
+    return str.split('').reverse().join('');
 }
 
 // [
@@ -12,14 +16,14 @@ if ( raw.substr(0,1) != 's' ){
 //		4: search,
 //		5: startFlags
 // ]
-var parts = raw.split('').reverse().join('').match(/^([gim]*)(.)(.*?)\2(?!\\)(.*?)\2(?!\\)([s]{0,1})$/);
+var parts = flip(raw).match(/^([gim]*)(.)(.*?)\2(?!\\)(.*?)\2(?!\\)(s?)$/);
 
 if ( !parts ){
 	reply('Syntax error in regular expression!');
-	return done();;
+	return done();
 }
 
-parts = parts.map(function(x){return x.split('').reverse().join('');});
+parts = parts.map(flip);
 
 var reg = new RegExp(parts[4], parts[1]);
 reply(args.join(' ').replace(reg, parts[3]));

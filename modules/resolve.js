@@ -10,11 +10,12 @@ if ( ['A', 'AAAA', 'MX', 'TXT', 'SRV', 'PTR', 'NS', 'CNAME'].indexOf(rectype) ==
 	rectype = null;
 
 if ( rectype ){
-	require('dns').resolve(args.shift(), rectype, function(err, addr){
+    var raw = args.shift();
+	require('dns').resolve(raw, rectype, function(err, addr){
 		if ( addr )
-			reply(addr.length==1 ? addr[0] : JSON.stringify(addr));
+            reply('\002'+raw+':\002 '+(addr.length==1 ? addr[0] : JSON.stringify(addr)));
 		else
-			reply('No results');
+			reply('\002'+raw+':\002 No results');
 		done();
 	});
 }
