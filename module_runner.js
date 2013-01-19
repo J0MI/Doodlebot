@@ -1,5 +1,6 @@
 var fs = require('fs');
 var vm = require('vm');
+var childProc = require('child_process');
 
 process.on('uncaughtException', function(err){
         console.error('exception', err);
@@ -22,6 +23,28 @@ function runModule(rundata){
             return null;
 	};
 	
+        rundata.addAt = function(time, msg, cb){
+            var url = 'http://localhost:1337/privmsg?network='+encodeURIComponent(rundata.network.name)+'&channel='+encodeURIComponent(rundata.channel)+'&message='+encodeURIComponent(msg).replace(/\'/g, '%27');
+
+            var p = childProc.spawn('/usr/bin/at', time.split(/\s+/), {
+                'stdio': 'pipe'
+            });
+
+            p.stdin.end("/usr/bin/wget -O /dev/null '" + url + "'");
+
+            var retu = '';
+            p.stdout.on('data', function(data){
+                retu += data;
+            });
+            p.stderr.on('data', function(data){
+                retu += data;
+            });
+
+            p.on('exit', function(code){
+                cb(retu);
+            });
+        };
+
 	rundata.reply = function(msg){
 		process.send({
 			'type': 'reply',
@@ -34,6 +57,13 @@ function runModule(rundata){
 
         rundata.done = function(){
                 process.disconnect();
+        };
+
+        rundata.disableTimeoutNotification = function(){
+                process.send({
+                    'type': 'setTimeoutNotification',
+                    'val': false
+                });
         };
 	
 	rundata.runModule = function(module, args){

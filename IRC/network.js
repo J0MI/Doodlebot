@@ -21,10 +21,7 @@ module.exports = function(config, name){
 	// Local variables
 	this.name = name;
 	this.config = config;
-	this.sock = new net.Socket({
-		'type': 'tcp4',
-		'allowHalfOpen': true
-	});
+	this.sock = null;
 
 	this.nick = null;
 	this.users = {};
@@ -48,10 +45,13 @@ module.exports = function(config, name){
 		self.sendLine('PASS '+pass);
 		self.sendLine('USER '+self.config.user);
 
-		self.nick(self.config.nick[0] || self.config.nick);
+		self.setNick(self.config.nick[0] || self.config.nick);
 	};
 	this.onDisconnect = function(wasError){
 		console.log('DISCONNECT ('+(wasError?'error':'normal')+')');
+
+                if ( self.config.autoreconnect )
+                    self.connect();
 	};
 
 	this.onExit = function(doneCallback){
@@ -199,21 +199,23 @@ module.exports = function(config, name){
 				'PRIVMSG': function(args, msg){
 					var msgTarget = args.shift();
 					var parts = msg.split(/\s+/);
+                                        var rawArgs = msg.substr((parts[0] || '').length+1);
 
 					if ( self.channels[msgTarget] && self.channels[msgTarget].logger )
 						self.channels[msgTarget].logger.privmsg(origin, msg);
 
+                                        var callstack = [];
 					var runModule = function(module, modulePath, parts){
 						var replyTarget = msgTarget==self.nick ? origin.nick : msgTarget;
 						var replyFunc = function(msg){
-							if ( typeof(msg) == 'object' ){
-								if ( msg.message )
-									msg = msg.message;
-								else
-									msg = JSON.stringify(msg);
-							}
+                                                        try{
+                                                            if ( typeof(msg) == 'object' )
+                                                                msg = JSON.stringify(msg);
+                                                        }
+                                                        catch(e){
+                                                        }
 
-							self.sendLine('PRIVMSG '+replyTarget+' :'+(''+msg).replace(/[\r\n]/, ' '));
+							self.sendLine('PRIVMSG '+replyTarget+' :'+(''+msg).replace(/[\r\n]+/, ' '));
 						};
                                                 
                                                 var basePath = path.resolve('modules/');
@@ -222,13 +224,22 @@ module.exports = function(config, name){
                                                     return;
                                                 }
 
+                                                if ( callstack.indexOf(module) != -1 ){
+                                                    replyFunc('Circular runModule not allowed');
+                                                    return;
+                                                }
+                                                callstack.push(module);
+
 						try{
 							var child = child_process.fork('module_runner.js', [module, modulePath, parts]);
+                                                        
+                                                        var showTimeoutNotification = true;
                                                         var timeoutTimeout = null;
                                                         if ( self.config.moduleTimeout ){
                                                             timeoutTimeout = setTimeout(function(){
                                                                 child.kill('SIGKILL');
-                                                                replyFunc(module + ' timed out!');
+                                                                if ( showTimeoutNotification )
+                                                                    replyFunc(module + ' timed out!');
                                                             }, self.config.moduleTimeout);
                                                         }
 
@@ -244,6 +255,9 @@ module.exports = function(config, name){
 									return;
 
 								switch ( msg.type ){
+                                                                case 'setTimeoutNotification':
+                                                                        showTimeoutNotification = !!msg.val;
+                                                                        break;
 								case 'exception':
 									replyFunc('\002Exception:\002 ' + msg.ex);
 									break;
@@ -272,6 +286,7 @@ module.exports = function(config, name){
 									'channel': msgTarget,
 
 									'args': parts,
+                                                                        'rawArgs': rawArgs,
 									'moduleName': module,
 									'isQuery': msgTarget==self.nick
 								}
@@ -315,15 +330,28 @@ module.exports = function(config, name){
 	// Functions
 	this.connect = function(){
 		var serverparts = self.config.servers[0].split(':');
+
+                self.sock = new net.Socket({
+                    'type': 'tcp4',
+                    'allowHalfOpen': true
+                });
+
+                self.sock.setEncoding('utf8');
+                self.sock.on('connect', self.onConnect);
+                self.sock.on('close', self.onDisconnect);
+                self.sock.on('end', self.onDisconnect);
+                self.sock.on('data', self.onData);
+
 		self.sock.connect(+(serverparts[1] || 6667), serverparts[0]);
 	};
 
 	this.sendLine = function(line){
+                line = line.replace(/[\r\n]/g, '');
 		console.log('<< '+line);
 		self.sock.write(line+"\r\n");
 	};
 
-	this.nick = function(nick){
+	this.setNick = function(nick){
 		nick = sanitize(nick);
 		self.nick = nick;
 		self.sendLine('NICK '+nick);
@@ -336,10 +364,4 @@ module.exports = function(config, name){
 	this.part = function(channel){
 		self.sendLine('PART '+sanitize(channel));
 	};
-
-	// Local initialization
-	this.sock.setEncoding('utf8');
-	this.sock.on('connect', this.onConnect);
-	this.sock.on('close', this.onDisconnect);
-	this.sock.on('data', this.onData);
 };

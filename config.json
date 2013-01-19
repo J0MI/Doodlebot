@@ -6,7 +6,8 @@
 			"source": "file",
 			"filename": "pass.txt"
 		},
-		"commandChar": ".",
+                "autoreconnect": true,
+		"commandChar": "!",
 		"logFile": "~/logs/$NETWORK/$CHANNEL.log",
 		"logFormat": "irssi",
 		"moduleTimeout": 6000,
@@ -39,6 +40,10 @@
 		"Freenode": {
 			"servers": ["chat.freenode.net:6667"],
 			"channels": ["#generirc", "#quadrivium"]
+		},
+		"IRCnet": {
+			"servers": ["uk.ircnet.org:6667"],
+			"channels": ["!keksimisentuska", "!fk12", "!dmcr", "!lanparty", "!paranormaalijakauma","!gcs","!jeeciv","!ideanheittely"]
 		}
 	}
 }

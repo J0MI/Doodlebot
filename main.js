@@ -117,7 +117,7 @@ apiServer = http.createServer(function(req, res){
 			break;
 			case 'nick':
 				if ( network ){
-					network.nick(args.nick);
+					network.setNick(args.nick);
 				}
 				else
 					body = 'Invalid network';
