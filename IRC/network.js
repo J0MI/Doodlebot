@@ -197,7 +197,6 @@ module.exports = function(config, name){
 						self.channels[channel].logger.part(origin, message);
 				},
 				'PRIVMSG': function(args, msg){
-					if (msg.indexOf("for(;;reply") >= 0) return;
 					var msgTarget = args.shift();
 					var parts = msg.split(/\s+/);
 					var rawArgs = msg.substr((parts[0] || '').length+1);
