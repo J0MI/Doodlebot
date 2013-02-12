@@ -45,7 +45,11 @@ function runModule(rundata){
             });
         };
 
+        var linesSent = 0;
 	rundata.reply = function(msg){
+                if ( ++linesSent > 2 )
+                    return;
+
 		process.send({
 			'type': 'reply',
 			'msg': msg
@@ -87,8 +91,12 @@ function runModule(rundata){
 		validTimeouts.push(setTimeout(fn, time));
 	};
 	rundata.clearTimeout = function(id){
-		if ( validTimeouts.indexOf(id) != -1 )
-			clearTimeout(id);
+                var ind = validTimeouts.indexOf(id);
+                if ( ind == -1 )
+                    return;
+
+		clearTimeout(id);
+                delete validTimeouts[ind];
 	};
 
 	fs.readFile(modulePath, 'utf8', function(err, data){
