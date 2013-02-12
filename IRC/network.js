@@ -200,7 +200,7 @@ module.exports = function(config, name){
 					if (msg.indexOf("for(;;reply") >= 0) return;
 					var msgTarget = args.shift();
 					var parts = msg.split(/\s+/);
-                    var rawArgs = msg.substr((parts[0] || '').length+1);
+					var rawArgs = msg.substr((parts[0] || '').length+1);
 
 					if ( self.channels[msgTarget] && self.channels[msgTarget].logger )
 						self.channels[msgTarget].logger.privmsg(origin, msg);
